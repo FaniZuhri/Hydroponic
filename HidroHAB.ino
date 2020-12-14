@@ -43,10 +43,10 @@ BH1750 lightMeter(0x23);
 
 //const char* ssid = "PT HAB Green House";
 //const char* password = "pthab007";
-const char* ssid = "Mie Goyeng";
-const char* password = "digodogsek";
-const char* mqtt_server = "192.168.43.182";
-const char* mqtt_topic = "hidroHAB";
+const char *ssid = "Mie Goyeng";
+const char *password = "digodogsek";
+const char *mqtt_server = "192.168.43.182";
+const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85";
 char c;
 
@@ -75,11 +75,12 @@ SHT2x SHT2x;
 WiFiClient espClient;
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
-#define MSG_BUFFER_SIZE  (100)
+#define MSG_BUFFER_SIZE (100)
 char msg[MSG_BUFFER_SIZE];
 int value = 0;
 
-void setup_wifi() {
+void setup_wifi()
+{
 
   delay(10);
   // We start by connecting to a WiFi network
@@ -95,7 +96,8 @@ void setup_wifi() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -127,10 +129,10 @@ int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue, hum;
 
-float pH_start, pH_end, pH_val, phValue=0, reservoir_temp;
+float pH_start, pH_end, pH_val, phValue = 0, reservoir_temp;
 float vol;
 int lux;
-int i=1, t, TDS_coef, dis_sum, firstLoop = 1, n, gy, a=1, b=1, d=1, e=1;
+int i = 1, t, TDS_coef, dis_sum, firstLoop = 1, n, gy, a = 1, b = 1, d = 1, e = 1;
 
 String from_nodeMCU, pHstatus, TDSstatus;
 int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, h;
@@ -157,26 +159,31 @@ unsigned long startTime = 0;
 unsigned long durasiRelay = 30000;
 unsigned long durasiSampling = 8000;
 
-
-void callback(char* topic, byte* payload, unsigned int length) {
+void callback(char *topic, byte *payload, unsigned int length)
+{
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++) {
+  for (int i = 0; i < length; i++)
+  {
     Serial.print((char)payload[i]);
   }
   Serial.println();
 
   // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
-  } else {
+  if ((char)payload[0] == '1')
+  {
   }
-
+  else
+  {
+  }
 }
 
-void reconnect() {
+void reconnect()
+{
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!client.connected())
+  {
     Serial.print("Attempting MQTT connection...");
     lcd.clear();
     lcd.setCursor(0, 1);
@@ -185,12 +192,16 @@ void reconnect() {
     String clientId = "ESP8266Client-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str()))
+    {
       Serial.println("connected");
       lcd.clear();
       lcd.setCursor(0, 2);
-      lcd.print("   MQTT Connected   "); delay(2000);
-    } else {
+      lcd.print("   MQTT Connected   ");
+      delay(2000);
+    }
+    else
+    {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
@@ -198,7 +209,7 @@ void reconnect() {
       lcd.setCursor(0, 2);
       lcd.print("failed with state");
       lcd.print(client.state());
-      lcd.setCursor(0,3);
+      lcd.setCursor(0, 3);
       lcd.print("try again in 3 seconds");
       delay(3000);
       // Wait 5 seconds before retrying
@@ -207,17 +218,16 @@ void reconnect() {
   }
 }
 
-
-void setup() {
-Serial.begin(115200);
+void setup()
+{
+  Serial.begin(115200);
   lcd.init(); // initialize the lcd
   lcd.backlight();
-  
+
   setup_wifi();
   client.setServer(mqtt_server, 1883); //IP raspi
   client.setCallback(callback);
-  
-  
+
   pinMode(pHrelaypin, OUTPUT);
   pinMode(TDSrelaypin, OUTPUT);
   pinMode(samplingrelay, OUTPUT);
@@ -227,36 +237,38 @@ Serial.begin(115200);
   delay(1000);
   waktu1();
   pinMode(TdsSensorPin, INPUT);
-  EEPROM.begin(32);//needed EEPROM.begin to store calibration k in eeprom
-//  EEPROM.begin(34);
-//  delay(250);
-  ph.begin(); ec.begin();
-//  delay(250);
+  EEPROM.begin(32); //needed EEPROM.begin to store calibration k in eeprom
+                    //  EEPROM.begin(34);
+                    //  delay(250);
+  ph.begin();
+  ec.begin();
+  //  delay(250);
   //by default lib store calibration k since 10 change it by set ec.begin(30); to start from 30
   ads.setGain(GAIN_ONE);
   ads.begin();
-  
+
   sensors.begin(); //DS18B20 start
 
   Wire.begin();
   // On esp8266 you can select SCL and SDA pins using Wire.begin(D4, D3);
-  
-  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+
+  if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE))
+  {
     Serial.println(F("BH1750 Advanced begin"));
   }
-  else {
+  else
+  {
     Serial.println(F("Error initialising BH1750"));
   }
 
   SHT2x.begin();
-
 }
 
-
-
-void loop() {
-    delay(500);
-  if (!client.connected()) {
+void loop()
+{
+  delay(500);
+  if (!client.connected())
+  {
     reconnect();
     lcd.clear();
     delay(1000);
@@ -264,80 +276,80 @@ void loop() {
     displayLcd1();
   }
   client.loop();
-    
+
   delay(1000);
-  
-  
+
   unsigned long now = millis();
-  if (now - lastMsg > 2000) {
-      lastMsg = now;
-  //    ++value;
-      Serial.println("Send data monitoring to MQTT...");
-      snprintf (msg, MSG_BUFFER_SIZE, "%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%i,%.1f", sn.c_str(), tanggal.c_str(), waktu.c_str(), temperature, reservoir_temp, phValue, ecValue, hum, lux, vol);
-      Serial.print("Publish message: ");
-      Serial.println(msg);
-      Serial.println(" ");
-      client.publish("hidroHAB", msg);
-      delay(1000);
+  if (now - lastMsg > 2000)
+  {
+    lastMsg = now;
+    //    ++value;
+    Serial.println("Send data monitoring to MQTT...");
+    snprintf(msg, MSG_BUFFER_SIZE, "%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%i,%.1f", sn.c_str(), tanggal.c_str(), waktu.c_str(), temperature, reservoir_temp, phValue, ecValue, hum, lux, vol);
+    Serial.print("Publish message: ");
+    Serial.println(msg);
+    Serial.println(" ");
+    client.publish("hidroHAB", msg);
+    delay(1000);
   }
-    if(i==1)
-    {
-      Serial.println("first lcd");
-      lcd.clear();
-      displayLcd();
-      i++;
-      delay(2000);
-    }
-    if(i>2 && i<10)
-    {
-        Serial.println("print lcd");
-        displayLcd();
-        i++;
-        delay(2000);
-    }
-    if(i>9)
-    {
-      Serial.println("clear lcd");
-      lcd.clear();
-      displayLcd();
-      i=1;
-      delay(2000);
-    }
-    delay(500);
-    for (gy=1;gy<5;gy++)
-    {
-      read_BH();
-      delay(250);
-    }
-      
-    readSHT();
-    lcd.setCursor(0, 1);
-    lcd.print("T/H:");
-    lcd.print(temperature,0);
-    lcd.print("/");
-    lcd.print(hum,0);
-    delay(1000);
-    
-    read_temp();
-    lcd.setCursor(10, 3);
-    lcd.print("WT:");
-    lcd.print(reservoir_temp);
-    delay(1000);
-      
-    for(e=1;e<9;e++)
-    {
-      read_JSN();
-      delay(250);
-    }
-    lcd.setCursor(10, 2);
-    lcd.print("V :");
-    lcd.print(vol,0);
-    delay(1000);
-    
-    sampling();
-    delay(1000);
-    for (b=1;b<21;b++)
-    {
+  if (i == 1)
+  {
+    Serial.println("first lcd");
+    lcd.clear();
+    displayLcd();
+    i++;
+    delay(2000);
+  }
+  if (i > 2 && i < 10)
+  {
+    Serial.println("print lcd");
+    displayLcd();
+    i++;
+    delay(2000);
+  }
+  if (i > 9)
+  {
+    Serial.println("clear lcd");
+    lcd.clear();
+    displayLcd();
+    i = 1;
+    delay(2000);
+  }
+  delay(500);
+  for (gy = 1; gy < 5; gy++)
+  {
+    read_BH();
+    delay(250);
+  }
+
+  readSHT();
+  lcd.setCursor(0, 1);
+  lcd.print("T/H:");
+  lcd.print(temperature, 0);
+  lcd.print("/");
+  lcd.print(hum, 0);
+  delay(1000);
+
+  read_temp();
+  lcd.setCursor(10, 3);
+  lcd.print("WT:");
+  lcd.print(reservoir_temp);
+  delay(1000);
+
+  for (e = 1; e < 9; e++)
+  {
+    read_JSN();
+    delay(250);
+  }
+  lcd.setCursor(10, 2);
+  lcd.print("V :");
+  lcd.print(vol, 0);
+  delay(1000);
+
+  sampling();
+  delay(1000);
+  for (b = 1; b < 21; b++)
+  {
     relay(0, 1, 1);
     delay(1000);
     static unsigned long timepoint = millis();
@@ -353,66 +365,66 @@ void loop() {
       voltage = ads.readADC_SingleEnded(1) / 7.25; // read the voltage
       Serial.print("voltage:");
       Serial.println(voltage, 0);
-  
-  //    reservoir_temp = readTemperature(); // read your temperature sensor to execute temperature compensation
-  //    Serial.print("temperature:");
-  //    Serial.print(reservoir_temp, 1);
-  //    Serial.println("^C");
-  
+
+      //    reservoir_temp = readTemperature(); // read your temperature sensor to execute temperature compensation
+      //    Serial.print("temperature:");
+      //    Serial.print(reservoir_temp, 1);
+      //    Serial.println("^C");
+
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
       Serial.print("pH:");
       Serial.println(phValue, 4);
     }
     ph.calibration(voltage, temp); // calibration process by Serail CMD
     delay(1000);
-    }
-    
+  }
+
+  delay(1000);
+  relay(1, 1, 1);
+  delay(1000);
+  lcd.setCursor(0, 2);
+  lcd.print("PH :");
+  lcd.print(phValue, 1);
+  delay(1000);
+
+  for (d = 1; d < 21; d++)
+  {
+    relay(1, 0, 1);
     delay(1000);
-    relay(1, 1, 1);
-    delay(1000);
-    lcd.setCursor(0, 2);
-    lcd.print("PH :");
-    lcd.print(phValue,1);
-    delay(1000);
-    
-    for (d=1;d<21;d++)
+    static unsigned long timepoint = millis();
+    if (millis() - timepoint > 1000U) //time interval: 1s
     {
-      relay(1, 0, 1);
-      delay(1000);
-      static unsigned long timepoint = millis();
-      if (millis() - timepoint > 1000U) //time interval: 1s
-      {
-    
-        timepoint = millis();
-        voltage1 = ads.readADC_SingleEnded(0) / 250;
-        Serial.print("voltage:");
-        Serial.println(voltage1, 0);
-    
-        //temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
-        Serial.print("temperature:");
-        Serial.print(temp, 1);
-        Serial.println("^C");
-    
-        ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-        ecValue = ecValue*1000;
-        Serial.print("EC:");
-        Serial.print(ecValue, 4);
-        Serial.println("us/cm");
-      }
-      
-      ec.calibration(voltage1, temp); // calibration process by Serail CMD
-      delay(1000);
+
+      timepoint = millis();
+      voltage1 = ads.readADC_SingleEnded(0) / 250;
+      Serial.print("voltage:");
+      Serial.println(voltage1, 0);
+
+      //temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
+      Serial.print("temperature:");
+      Serial.print(temp, 1);
+      Serial.println("^C");
+
+      ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
+      ecValue = ecValue * 1000;
+      Serial.print("EC:");
+      Serial.print(ecValue, 4);
+      Serial.println("us/cm");
     }
-    
+
+    ec.calibration(voltage1, temp); // calibration process by Serail CMD
     delay(1000);
-    relay(1, 1, 1);
-    delay(1000);
-    lcd.setCursor(0, 3);
-    lcd.print("EC :");
-    lcd.print(ecValue, 0);
-    delay(500);
-    timestamp();
-    delay(500);
+  }
+
+  delay(1000);
+  relay(1, 1, 1);
+  delay(1000);
+  lcd.setCursor(0, 3);
+  lcd.print("EC :");
+  lcd.print(ecValue, 0);
+  delay(500);
+  timestamp();
+  delay(500);
   displayLcd1();
   delay(2000);
 }
@@ -420,14 +432,13 @@ void loop() {
 /***************** sampling state ****************************************/
 void sampling()
 {
-    relay(1, 1, 0);
-//    Serial.print("Pick sample water....");
-//    Serial.println(n);
-    delay(10000);
+  relay(1, 1, 0);
+  //    Serial.print("Pick sample water....");
+  //    Serial.println(n);
+  delay(10000);
   relay(1, 1, 1);
   delay(1000);
 }
-
 
 //----------------------start of RTC DS3231 function----------------------//
 // Convert normal decimal numbers to binary coded decimal
@@ -471,12 +482,11 @@ void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byt
 }
 //----------------------end of RTC DS3231 function----------------------//
 
-
 //-----------------------RTC--------------------------//
 void waktu1()
 {
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
-  
+
   Serial.print(dayOfMonth, DEC);
   Serial.print("-");
   Serial.print(month, DEC);
@@ -502,7 +512,7 @@ void waktu1()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("      PT. HAB      ");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("   Mon. Hidroponik  ");
   lcd.setCursor(0, 2);
   lcd.print("   ");
@@ -524,7 +534,7 @@ void waktu1()
 
 /*********************** Read PH ADC **********************************/
 //void read_PH_ADC()
-//{ 
+//{
 //  relay(0, 1, 1);
 //  delay(1000);
 //  static unsigned long timepoint = millis();
@@ -552,7 +562,6 @@ void waktu1()
 //  }
 //  ph.calibration(voltage, temp); // calibration process by Serail CMD
 //}
-
 
 /*********************** End Read PH ADC **********************************/
 
@@ -591,9 +600,9 @@ void read_temp()
 }
 // ----- End Of Measurement ------ //
 
-
 /******************************* BH1750 Reading *******************************/
-void read_BH(){ 
+void read_BH()
+{
   lux = lightMeter.readLightLevel();
   Serial.print("Light: ");
   Serial.print(lux);
@@ -606,12 +615,13 @@ void read_BH(){
 /************************** End BH Reading ********************************/
 
 /****************************** Read JSN *********************************/
-void read_JSN(){
+void read_JSN()
+{
   // Measure distance and print to the Serial Monitor:
   Serial.print("Distance = ");
   // Send ping, get distance in cm and print result (0 = outside set distance range):
   vol = sonar.ping_cm();
-  Serial.print(vol); 
+  Serial.print(vol);
   Serial.println(" cm");
   delay(500);
 }
@@ -642,7 +652,7 @@ void read_JSN(){
 //    Serial.print(ecValue, 4);
 //    Serial.println("us/cm");
 //  }
-//  
+//
 //  ec.calibration(voltage, temp); //calibration process by Serail CMD
 //  }
 
@@ -711,7 +721,8 @@ void timestamp()
 // ------------- End Of Timestamps --------------- //
 
 /********************* Sensor Display to LCD ***************************/
-void displayLcd(){  
+void displayLcd()
+{
   lcd.setCursor(0, 0);
   lcd.print(" ");
   lcd.print(tanggal);
@@ -720,12 +731,12 @@ void displayLcd(){
   lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
-  lcd.print(temperature,0);
+  lcd.print(temperature, 0);
   lcd.print("/");
-  lcd.print(hum,0);
+  lcd.print(hum, 0);
   lcd.setCursor(0, 2);
   lcd.print("PH :");
-  lcd.print(phValue,1);
+  lcd.print(phValue, 1);
   lcd.setCursor(0, 3);
   lcd.print("EC :");
   lcd.print(ecValue, 0);
@@ -734,17 +745,18 @@ void displayLcd(){
   lcd.print(lux);
   lcd.setCursor(10, 2);
   lcd.print("V :");
-  lcd.print(vol,0);
+  lcd.print(vol, 0);
   lcd.setCursor(10, 3);
   lcd.print("WT:");
   lcd.print(reservoir_temp);
   delay(5000);
-//  lcd.clear();
+  //  lcd.clear();
 }
 /************************ End of Display ***************************/
 
 /********************* Sensor Display to LCD ***************************/
-void displayLcd1(){  
+void displayLcd1()
+{
   lcd.setCursor(0, 0);
   lcd.print(" ");
   lcd.print(tanggal);
@@ -753,12 +765,12 @@ void displayLcd1(){
   lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
-  lcd.print(temperature,0);
+  lcd.print(temperature, 0);
   lcd.print("/");
-  lcd.print(hum,0);
+  lcd.print(hum, 0);
   lcd.setCursor(0, 2);
   lcd.print("PH :");
-  lcd.print(phValue,1);
+  lcd.print(phValue, 1);
   lcd.setCursor(0, 3);
   lcd.print("EC :");
   lcd.print(ecValue, 0);
@@ -766,11 +778,11 @@ void displayLcd1(){
   lcd.print("L :");
   lcd.setCursor(10, 2);
   lcd.print("V :");
-  lcd.print(vol,0);
+  lcd.print(vol, 0);
   lcd.setCursor(10, 3);
   lcd.print("WT:");
   lcd.print(reservoir_temp);
   delay(5000);
-//  lcd.clear();
+  //  lcd.clear();
 }
 /************************ End of Display ***************************/
