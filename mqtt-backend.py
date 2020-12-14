@@ -84,9 +84,9 @@ def parse_received_data(topic, data):
     val = (sn, date, time, diff)
     mycursor.execute(sql, val)
     # send to db local moni_detail
-    sql2 =
-    "INSERT INTO moni_detail (id, sensor, nilai)"
-    sql2 += " VALUES (LAST_INSERT_ID(), %s, %s)"
+    sql21 = "INSERT INTO moni_detail (id, sensor, nilai)"
+    sql22 = " VALUES (LAST_INSERT_ID(), %s, %s)"
+    sql2 = "".join((sql21, sql22))
     val2 = [('Cahaya', cahaya), ('Temp', temp), ('Hum', hum), ('Volume', vol),
             ('TDS_val', tdsValue), ('Water_temp', reservoir_temp),
             ('pH_val', phValue)]
