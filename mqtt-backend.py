@@ -79,12 +79,16 @@ def parse_received_data(topic, data):
     print(diff)
     # send to db local moni
     mycursor = mydb.cursor()
-    sql = "INSERT INTO moni (sn, dgw, tgw, delay_gw_server) VALUES (%s, %s, %s, %s)"
+    sql =
+    "INSERT INTO moni (sn, dgw, tgw, delay_gw_server) VALUES (%s, %s, %s, %s)"
     val = (sn, date, time, diff)
     mycursor.execute(sql, val)
     # send to db local moni_detail
-    sql2 = "INSERT INTO moni_detail (id, sensor, nilai) VALUES (LAST_INSERT_ID(), %s, %s)"
-    val2 = [('Cahaya', cahaya), ('Temp', temp), ('Hum', hum), ('Volume', vol), ('TDS_val', tdsValue), ('Water_temp', reservoir_temp), ('pH_val', phValue)]
+    sql2 =
+    "INSERT INTO moni_detail (id, sensor, nilai) VALUES (LAST_INSERT_ID(), %s, %s)"
+    val2 = [('Cahaya', cahaya), ('Temp', temp), ('Hum', hum), ('Volume', vol),
+            ('TDS_val', tdsValue), ('Water_temp', reservoir_temp),
+            ('pH_val', phValue)]
     mycursor.executemany(sql2, val2)
     mydb.commit()
     # send to db server moni & moni_detail on server omahiot.com
@@ -119,7 +123,8 @@ def parse_received_data(topic, data):
             'sensor': sensor,
             'nilai': nilai}
     '#post data to db server omahiot.com'
-    post = requests.get('http://smart-gh.com/input.php?sn=2020060001', params=data)
+    post =
+    requests.get('http://smart-gh.com/input.php?sn=2020060001', params=data)
     if post.status_code == 200:
         print('Data Monitoring has been sent to Database Server')
     elif post.status_code == 404:
@@ -142,7 +147,8 @@ def parse_received_data(topic, data):
              'tgl_tanam': "2020-02-11",
              'sensor': sens,
              'nilai': val}
-    sendsetup = requests.get('http://omahiot.com/input.php?sn=2020060001', params=setup)
+    sendsetup =
+    requests.get('http://omahiot.com/input.php?sn=2020060001', params=setup)
     if sendsetup.status_code == 200:
         print('Data Setup has been sent to Database Server \n')
     elif sendsetup.status_code == 404:
