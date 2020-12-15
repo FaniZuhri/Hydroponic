@@ -43,9 +43,9 @@ BH1750 lightMeter(0x23);
 
 //const char* ssid = "PT HAB Green House";
 //const char* password = "pthab007";
-const char *ssid = "Mie Goyeng";
-const char *password = "digodogsek";
-const char *mqtt_server = "192.168.43.182";
+const char *ssid = "aiohti";
+const char *password = "*Hydr0p0n1c#";
+const char *mqtt_server = "192.168.1.11";
 const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85";
 char c;

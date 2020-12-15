@@ -165,6 +165,7 @@ client = mqtt.Client()
 client.on_connect = on_connect
 client.on_message = on_message
 
+
 client.username_pw_set("", "")
 client.connect("192.168.43.182", 1883, 60)
 
