@@ -330,12 +330,6 @@ void loop()
   lcd.print(hum, 0);
   delay(1000);
 
-  read_temp();
-  lcd.setCursor(10, 3);
-  lcd.print("WT:");
-  lcd.print(reservoir_temp);
-  delay(1000);
-
   for (e = 1; e < 9; e++)
   {
     read_JSN();
@@ -348,6 +342,13 @@ void loop()
 
   sampling();
   delay(1000);
+
+  read_temp();
+  lcd.setCursor(10, 3);
+  lcd.print("WT:");
+  lcd.print(reservoir_temp);
+  delay(1000);
+  
   for (b = 1; b < 21; b++)
   {
     relay(0, 1, 1);
@@ -362,7 +363,7 @@ void loop()
        * index 2 for adc's pin A2
        * index 3 for adc's pin A3
       */
-      voltage = ads.readADC_SingleEnded(1) / 7.25; // read the voltage
+      voltage = ads.readADC_SingleEnded(1) / 10; // read the voltage
       Serial.print("voltage:");
       Serial.println(voltage, 0);
 
@@ -396,7 +397,7 @@ void loop()
     {
 
       timepoint = millis();
-      voltage1 = ads.readADC_SingleEnded(0) / 250;
+      voltage1 = ads.readADC_SingleEnded(0) / 9;
       Serial.print("voltage:");
       Serial.println(voltage1, 0);
 
