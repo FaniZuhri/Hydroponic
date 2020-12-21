@@ -43,9 +43,11 @@ BH1750 lightMeter(0x23);
 
 //const char* ssid = "PT HAB Green House";
 //const char* password = "pthab007";
-const char *ssid = "aiohti";
+const char *ssid = "monik";
 const char *password = "*Hydr0p0n1c#";
-const char *mqtt_server = "192.168.1.11";
+//const char *ssid = "Mie Goyeng";
+//const char *password = "digodogsek";
+const char *mqtt_server = "192.168.1.111";
 const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85";
 char c;
@@ -349,7 +351,44 @@ void loop()
   lcd.print(reservoir_temp);
   delay(1000);
   
-  for (b = 1; b < 21; b++)
+  for (d = 1; d < 21; d++)
+  {
+    relay(1, 0, 1);
+    delay(1000);
+    static unsigned long timepoint = millis();
+    if (millis() - timepoint > 1000U) //time interval: 1s
+    {
+
+      timepoint = millis();
+      voltage1 = ads.readADC_SingleEnded(0) / 10;
+      Serial.print("voltage:");
+      Serial.println(voltage1, 0);
+
+      //temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
+      Serial.print("temperature:");
+      Serial.print(temp, 1);
+      Serial.println("^C");
+
+      ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
+      ecValue = ecValue * 500;
+      Serial.print("EC:");
+      Serial.print(ecValue, 4);
+      Serial.println("us/cm");
+    }
+
+    ec.calibration(voltage1, temp); // calibration process by Serail CMD
+    delay(1000);
+  }
+
+  delay(1000);
+  relay(1, 1, 1);
+  delay(1000);
+  lcd.setCursor(0, 3);
+  lcd.print("EC :");
+  lcd.print(ecValue, 0);
+  delay(1000);
+
+for (b = 1; b < 21; b++)
   {
     relay(0, 1, 1);
     delay(1000);
@@ -386,48 +425,12 @@ void loop()
   lcd.setCursor(0, 2);
   lcd.print("PH :");
   lcd.print(phValue, 1);
-  delay(1000);
-
-  for (d = 1; d < 21; d++)
-  {
-    relay(1, 0, 1);
-    delay(1000);
-    static unsigned long timepoint = millis();
-    if (millis() - timepoint > 1000U) //time interval: 1s
-    {
-
-      timepoint = millis();
-      voltage1 = ads.readADC_SingleEnded(0) / 9;
-      Serial.print("voltage:");
-      Serial.println(voltage1, 0);
-
-      //temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
-      Serial.print("temperature:");
-      Serial.print(temp, 1);
-      Serial.println("^C");
-
-      ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-      ecValue = ecValue * 1000;
-      Serial.print("EC:");
-      Serial.print(ecValue, 4);
-      Serial.println("us/cm");
-    }
-
-    ec.calibration(voltage1, temp); // calibration process by Serail CMD
-    delay(1000);
-  }
-
-  delay(1000);
-  relay(1, 1, 1);
-  delay(1000);
-  lcd.setCursor(0, 3);
-  lcd.print("EC :");
-  lcd.print(ecValue, 0);
   delay(500);
+  
   timestamp();
   delay(500);
   displayLcd1();
-  delay(2000);
+  delay(5000);
 }
 
 /***************** sampling state ****************************************/
@@ -739,7 +742,7 @@ void displayLcd()
   lcd.print("PH :");
   lcd.print(phValue, 1);
   lcd.setCursor(0, 3);
-  lcd.print("EC :");
+  lcd.print("TDS:");
   lcd.print(ecValue, 0);
   lcd.setCursor(10, 1);
   lcd.print("L :");
@@ -773,10 +776,11 @@ void displayLcd1()
   lcd.print("PH :");
   lcd.print(phValue, 1);
   lcd.setCursor(0, 3);
-  lcd.print("EC :");
+  lcd.print("TDS:");
   lcd.print(ecValue, 0);
   lcd.setCursor(10, 1);
   lcd.print("L :");
+  lcd.print(lux);
   lcd.setCursor(10, 2);
   lcd.print("V :");
   lcd.print(vol, 0);
