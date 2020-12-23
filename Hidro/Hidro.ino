@@ -49,7 +49,7 @@ const char *password = "*Hydr0p0n1c#";
 //const char *password = "digodogsek";
 const char *mqtt_server = "192.168.1.111";
 const char *mqtt_topic = "hidroHAB";
-String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85";
+String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85", tanggal_ordered, waktu_ordered;
 char c;
 
 /************************* EC  and PH Initialization **************************/
@@ -370,7 +370,7 @@ void loop()
       Serial.println("^C");
 
       ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-      ecValue = ecValue * 500;
+      ecValue = ecValue * 1000;
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
@@ -536,38 +536,6 @@ void waktu1()
 }
 //------------------END of RTC----------------------//
 
-/*********************** Read PH ADC **********************************/
-//void read_PH_ADC()
-//{
-//  relay(0, 1, 1);
-//  delay(1000);
-//  static unsigned long timepoint = millis();
-//  if (millis() - timepoint > 1000U) //time interval: 1s
-//  {
-//    timepoint = millis();
-//    /**
-//     * index 0 for adc's pin A0
-//     * index 1 for adc's pin A1
-//     * index 2 for adc's pin A2
-//     * index 3 for adc's pin A3
-//    */
-//    voltage = ads.readADC_SingleEnded(1) / 7.25; // read the voltage
-//    Serial.print("voltage:");
-//    Serial.println(voltage, 0);
-//
-////    reservoir_temp = readTemperature(); // read your temperature sensor to execute temperature compensation
-////    Serial.print("temperature:");
-////    Serial.print(reservoir_temp, 1);
-////    Serial.println("^C");
-//
-//    phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
-//    Serial.print("pH:");
-//    Serial.println(phValue, 4);
-//  }
-//  ph.calibration(voltage, temp); // calibration process by Serail CMD
-//}
-
-/*********************** End Read PH ADC **********************************/
 
 /******************** Read SHT value ***********************/
 void readSHT()
@@ -631,37 +599,6 @@ void read_JSN()
 }
 /***************************** End JSN Reading ******************************/
 
-/******************************* EC Measurement ***************************/
-//void read_EC()
-//  {
-//    relay(1, 0, 1);
-//    delay(1000);
-//    static unsigned long timepoint = millis();
-//  if (millis() - timepoint > 1000U) //time interval: 1s
-//  {
-//
-//    timepoint = millis();
-//    voltage = ads.readADC_SingleEnded(0) / 220;
-//    Serial.print("voltage:");
-//    Serial.println(voltage, 0);
-//
-//    //temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
-//    Serial.print("temperature:");
-//    Serial.print(reservoir_temp, 1);
-//    Serial.println("^C");
-//
-//    ecValue = ec.readEC(voltage, temp); // convert voltage to EC with temperature compensation
-//    ecValue = ecValue*1000;
-//    Serial.print("EC:");
-//    Serial.print(ecValue, 4);
-//    Serial.println("us/cm");
-//  }
-//
-//  ec.calibration(voltage, temp); //calibration process by Serail CMD
-//  }
-
-/******************************** End EC *********************************/
-
 //------------------- Time Stamps -------------------//
 void timestamp()
 {
@@ -677,50 +614,64 @@ void timestamp()
   if (month < 10)
   {
     tanggal = "20" + tahun + "-" + "0" + bulan + "-" + hari;
+    tanggal_ordered = hari + "-" + "0" + bulan + "-" + "20" + tahun;
   }
   else if (month >= 10)
   {
     tanggal = "20" + tahun + "-" + bulan + "-" + hari;
+    tanggal_ordered = hari + "-" + bulan + "-" + "20" + tahun;
   }
 
   if (hour < 10 && minute < 10 && second < 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + "0" + detik;
+    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute < 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + detik;
+    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
+    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour < 10 && minute >= 10 && second < 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + "0" + detik;
+    waktu_ordered = "0" + jam + ":" + menit;
+    
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
+    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second < 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + "0" + detik;
+    waktu_ordered = jam + ":" + "0" + menit;
   }
   else if (hour >= 10 && minute >= 10 && second < 10)
   {
     waktu = jam + ":" + menit + ":" + "0" + detik;
+    waktu_ordered = jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second >= 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + detik;
+    waktu_ordered = jam + ":" + "0" + menit;
   }
   else
     waktu = jam + ":" + menit + ":" + detik;
+    waktu_ordered = jam + ":" + "0" + menit;
 
   Serial.print(tanggal);
   Serial.print("   ");
-  Serial.println(waktu);
+  Serial.print(waktu);
+  Serial.print("   ");
+  Serial.println(waktu_ordered);
 }
 // ------------- End Of Timestamps --------------- //
 
@@ -728,10 +679,10 @@ void timestamp()
 void displayLcd()
 {
   lcd.setCursor(0, 0);
+  lcd.print("  ");
+  lcd.print(tanggal_ordered);
   lcd.print(" ");
-  lcd.print(tanggal);
-  lcd.print(" ");
-  lcd.print(waktu);
+  lcd.print(waktu_ordered);
   lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
@@ -762,10 +713,10 @@ void displayLcd()
 void displayLcd1()
 {
   lcd.setCursor(0, 0);
+  lcd.print("  ");
+  lcd.print(tanggal_ordered);
   lcd.print(" ");
-  lcd.print(tanggal);
-  lcd.print(" ");
-  lcd.print(waktu);
+  lcd.print(waktu_ordered);
   lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
