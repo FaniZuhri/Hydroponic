@@ -384,7 +384,7 @@ void loop()
   relay(1, 1, 1);
   delay(1000);
   lcd.setCursor(0, 3);
-  lcd.print("EC :");
+  lcd.print("TDS:");
   lcd.print(ecValue, 0);
   delay(1000);
 
