@@ -41,13 +41,9 @@ BH1750 lightMeter(0x23);
 
 // Update these with values suitable for your network.
 
-//const char* ssid = "PT HAB Green House";
-//const char* password = "pthab007";
-const char *ssid = "monik";
-const char *password = "*Hydr0p0n1c#";
-//const char *ssid = "Mie Goyeng";
-//const char *password = "digodogsek";
-const char *mqtt_server = "192.168.1.111";
+const char* ssid = "Mie Goyeng";
+const char* password = "digodogsek";
+const char *mqtt_server = "192.168.43.219";
 const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85", tanggal_ordered, waktu_ordered;
 char c;
@@ -338,7 +334,7 @@ void loop()
     delay(250);
   }
   lcd.setCursor(10, 2);
-  lcd.print("V :");
+  lcd.print("BL:");
   lcd.print(vol, 0);
   delay(1000);
 
@@ -351,16 +347,16 @@ void loop()
   lcd.print(reservoir_temp);
   delay(1000);
   
-  for (d = 1; d < 21; d++)
+  for (d = 1; d < 51; d++)
   {
     relay(1, 0, 1);
-    delay(1000);
+    delay(800);
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
     {
 
       timepoint = millis();
-      voltage1 = ads.readADC_SingleEnded(0) / 10;
+      voltage1 = ads.readADC_SingleEnded(0) / 1.25;
       Serial.print("voltage:");
       Serial.println(voltage1, 0);
 
@@ -370,14 +366,14 @@ void loop()
       Serial.println("^C");
 
       ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-      ecValue = ecValue * 1000;
+      ecValue = ecValue * 500;
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
     }
 
     ec.calibration(voltage1, temp); // calibration process by Serail CMD
-    delay(1000);
+    delay(500);
   }
 
   delay(1000);
@@ -593,6 +589,7 @@ void read_JSN()
   Serial.print("Distance = ");
   // Send ping, get distance in cm and print result (0 = outside set distance range):
   vol = sonar.ping_cm();
+  vol = 120 - vol;
   Serial.print(vol);
   Serial.println(" cm");
   delay(500);
@@ -665,7 +662,7 @@ void timestamp()
   }
   else
     waktu = jam + ":" + menit + ":" + detik;
-    waktu_ordered = jam + ":" + "0" + menit;
+    waktu_ordered = jam + ":" + menit;
 
   Serial.print(tanggal);
   Serial.print("   ");
@@ -699,7 +696,7 @@ void displayLcd()
   lcd.print("L :");
   lcd.print(lux);
   lcd.setCursor(10, 2);
-  lcd.print("V :");
+  lcd.print("BL:");
   lcd.print(vol, 0);
   lcd.setCursor(10, 3);
   lcd.print("WT:");
@@ -733,7 +730,7 @@ void displayLcd1()
   lcd.print("L :");
   lcd.print(lux);
   lcd.setCursor(10, 2);
-  lcd.print("V :");
+  lcd.print("BL:");
   lcd.print(vol, 0);
   lcd.setCursor(10, 3);
   lcd.print("WT:");
