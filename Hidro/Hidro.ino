@@ -1,23 +1,3 @@
-/*
- Basic ESP8266 MQTT example
- This sketch demonstrates the capabilities of the pubsub library in combination
- with the ESP8266 board/library.
- It connects to an MQTT server then:
-  - publishes "hello world" to the topic "outTopic" every two seconds
-  - subscribes to the topic "inTopic", printing out any messages
-    it receives. NB - it assumes the received payloads are strings not binary
-  - If the first character of the topic "inTopic" is an 1, switch ON the ESP Led,
-    else switch it off
- It will reconnect to the server if the connection is lost using a blocking
- reconnect function. See the 'mqtt_reconnect_nonblocking' example for how to
- achieve the same result without blocking the main loop.
- To install the ESP8266 board, (using Arduino 1.6.4+):
-  - Add the following 3rd party board manager under "File -> Preferences -> Additional Boards Manager URLs":
-       http://arduino.esp8266.com/stable/package_esp8266com_index.json
-  - Open the "Tools -> Board -> Board Manager" and click install for the ESP8266"
-  - Select your ESP8266 in "Tools -> Board"
-*/
-
 #include "Arduino.h"
 #include "Adafruit_ADS1015.h"
 #include "DFRobot_ESP_EC.h"
@@ -43,7 +23,7 @@ BH1750 lightMeter(0x23);
 
 const char* ssid = "Mie Goyeng";
 const char* password = "digodogsek";
-const char *mqtt_server = "192.168.43.219";
+const char *mqtt_server = "192.168.1.100";
 const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85", tanggal_ordered, waktu_ordered;
 char c;
@@ -52,8 +32,6 @@ char c;
 DFRobot_ESP_EC ec;
 DFRobot_ESP_PH_WITH_ADC ph;
 Adafruit_ADS1115 ads;
-float ecValue;
-float voltage, voltage1, temperature, temp = 25;
 /************************* End Initialization *************************/
 
 /********************** JSN Initialization *****************************/
@@ -75,64 +53,9 @@ PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (100)
 char msg[MSG_BUFFER_SIZE];
-int value = 0;
 
-void setup_wifi()
-{
-
-  delay(10);
-  // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Connecting to...");
-  lcd.setCursor(0, 1);
-  lcd.print(ssid);
-
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-
-  randomSeed(micros());
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  lcd.clear();
-  lcd.setCursor(0, 1);
-  lcd.print("WiFi Connected!");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
-#define TdsSensorPin 32
-
-// -------------------- PH Sensor initialization ----------------- //
-//DFRobot_ESP_PH ph;
-//#define ESPADC 4096.0   //the esp Analog Digital Convertion value
-//#define ESPVOLTAGE 3300 //the esp voltage supply value
-//#define PH_PIN 39    //the esp gpio data pin number
-//float voltage, temperature=25;
-// -------------------- End PH Initialization ------------------- //
-
-#define SCOUNT 30         // sum of sample point
-int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
-int analogBufferTemp[SCOUNT];
-int analogBufferIndex = 0, copyIndex = 0;
-float averageVoltage = 0, tdsValue, hum;
-
-float pH_start, pH_end, pH_val, phValue = 0, reservoir_temp;
-float vol;
-int lux;
-int i = 1, t, TDS_coef, dis_sum, firstLoop = 1, n, gy, a = 1, b = 1, d = 1, e = 1;
-
-String from_nodeMCU, pHstatus, TDSstatus;
+float phValue = 0, reservoir_temp, tdsValue, hum, vol, ecValue, voltage, voltage1, temperature, temp = 25;
+int i = 1, t, TDS_coef, dis_sum, firstLoop = 1, n, gy, a = 1, b = 1, d = 1, e = 1, lux;
 int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, h;
 
 //Temperature chip i/o
@@ -145,76 +68,6 @@ DallasTemperature sensors(&oneWire);
 #define SCL_PIN 22
 #define DS3231_I2C_ADDRESS 0x68
 byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-
-//TIME DELAY
-unsigned long upload_previous;
-unsigned long currentTime;
-unsigned long upload_period = 5000;
-long int dataCount = 0;
-
-//variabel untuk looping 30 detik
-unsigned long startTime = 0;
-unsigned long durasiRelay = 30000;
-unsigned long durasiSampling = 8000;
-
-void callback(char *topic, byte *payload, unsigned int length)
-{
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++)
-  {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1')
-  {
-  }
-  else
-  {
-  }
-}
-
-void reconnect()
-{
-  // Loop until we're reconnected
-  while (!client.connected())
-  {
-    Serial.print("Attempting MQTT connection...");
-    lcd.clear();
-    lcd.setCursor(0, 1);
-    lcd.print("Connecting to MQTT..");
-    // Create a random client ID
-    String clientId = "ESP8266Client-";
-    clientId += String(random(0xffff), HEX);
-    // Attempt to connect
-    if (client.connect(clientId.c_str()))
-    {
-      Serial.println("connected");
-      lcd.clear();
-      lcd.setCursor(0, 2);
-      lcd.print("   MQTT Connected   ");
-      delay(2000);
-    }
-    else
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      lcd.clear();
-      lcd.setCursor(0, 2);
-      lcd.print("failed with state");
-      lcd.print(client.state());
-      lcd.setCursor(0, 3);
-      lcd.print("try again in 3 seconds");
-      delay(3000);
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
 
 void setup()
 {
@@ -234,13 +87,9 @@ void setup()
   relay(1, 1, 1);
   delay(1000);
   waktu1();
-  pinMode(TdsSensorPin, INPUT);
   EEPROM.begin(32); //needed EEPROM.begin to store calibration k in eeprom
-                    //  EEPROM.begin(34);
-                    //  delay(250);
   ph.begin();
   ec.begin();
-  //  delay(250);
   //by default lib store calibration k since 10 change it by set ec.begin(30); to start from 30
   ads.setGain(GAIN_ONE);
   ads.begin();
@@ -271,7 +120,7 @@ void loop()
     lcd.clear();
     delay(1000);
     timestamp();
-    displayLcd1();
+    displayLcd();
   }
   client.loop();
 
@@ -289,29 +138,6 @@ void loop()
     Serial.println(" ");
     client.publish("hidroHAB", msg);
     delay(1000);
-  }
-  if (i == 1)
-  {
-    Serial.println("first lcd");
-    lcd.clear();
-    displayLcd();
-    i++;
-    delay(2000);
-  }
-  if (i > 2 && i < 10)
-  {
-    Serial.println("print lcd");
-    displayLcd();
-    i++;
-    delay(2000);
-  }
-  if (i > 9)
-  {
-    Serial.println("clear lcd");
-    lcd.clear();
-    displayLcd();
-    i = 1;
-    delay(2000);
   }
   delay(500);
   for (gy = 1; gy < 5; gy++)
@@ -356,7 +182,7 @@ void loop()
     {
 
       timepoint = millis();
-      voltage1 = ads.readADC_SingleEnded(0) / 1.25;
+      voltage1 = ads.readADC_SingleEnded(0) / 1.50;
       Serial.print("voltage:");
       Serial.println(voltage1, 0);
 
@@ -402,11 +228,6 @@ for (b = 1; b < 21; b++)
       Serial.print("voltage:");
       Serial.println(voltage, 0);
 
-      //    reservoir_temp = readTemperature(); // read your temperature sensor to execute temperature compensation
-      //    Serial.print("temperature:");
-      //    Serial.print(reservoir_temp, 1);
-      //    Serial.println("^C");
-
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
       Serial.print("pH:");
       Serial.println(phValue, 4);
@@ -425,7 +246,7 @@ for (b = 1; b < 21; b++)
   
   timestamp();
   delay(500);
-  displayLcd1();
+  displayLcd();
   delay(5000);
 }
 
@@ -706,36 +527,99 @@ void displayLcd()
 }
 /************************ End of Display ***************************/
 
-/********************* Sensor Display to LCD ***************************/
-void displayLcd1()
+/************************* Setup Wifi *****************************/
+void setup_wifi()
 {
-  lcd.setCursor(0, 0);
-  lcd.print("  ");
-  lcd.print(tanggal_ordered);
-  lcd.print(" ");
-  lcd.print(waktu_ordered);
-  lcd.print(" ");
-  lcd.setCursor(0, 1);
-  lcd.print("T/H:");
-  lcd.print(temperature, 0);
-  lcd.print("/");
-  lcd.print(hum, 0);
-  lcd.setCursor(0, 2);
-  lcd.print("PH :");
-  lcd.print(phValue, 1);
+
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+  lcd.clear();
+  waktu1();
   lcd.setCursor(0, 3);
-  lcd.print("TDS:");
-  lcd.print(ecValue, 0);
-  lcd.setCursor(10, 1);
-  lcd.print("L :");
-  lcd.print(lux);
-  lcd.setCursor(10, 2);
-  lcd.print("BL:");
-  lcd.print(vol, 0);
-  lcd.setCursor(10, 3);
-  lcd.print("WT:");
-  lcd.print(reservoir_temp);
-  delay(5000);
-  //  lcd.clear();
+  lcd.print("Connecting");
+  lcd.setCursor(11, 3);
+  lcd.print(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
+
+  randomSeed(micros());
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  lcd.clear();
+  waktu1();
+  lcd.setCursor(0, 3);
+  lcd.print("Connected!");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
 }
-/************************ End of Display ***************************/
+/************************** End Setup Wifi **********************/
+
+/****************** Reconnect and Callback MQTT ******************/
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1')
+  {
+  }
+  else
+  {
+  }
+}
+
+void reconnect()
+{
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+    waktu1();
+    Serial.print("Attempting MQTT connection...");
+    lcd.setCursor(0, 3);
+    lcd.print("Connecting to MQTT..");
+    // Create a random client ID
+    String clientId = "ESP8266Client-";
+    clientId += String(random(0xffff), HEX);
+    // Attempt to connect
+    if (client.connect(clientId.c_str()))
+    {
+      Serial.println("connected");
+      lcd.clear();
+      waktu1();
+      lcd.setCursor(0, 3);
+      lcd.print("   MQTT Connected   ");
+      delay(2000);
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      lcd.clear();
+      waktu1();
+      lcd.setCursor(0, 3);
+      lcd.print("Failed. Trying again");
+      lcd.print(client.state());
+      delay(5000);
+    }
+  }
+}
+/************************** End Conf **************************/
