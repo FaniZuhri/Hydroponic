@@ -140,10 +140,7 @@ void setup()
 
 void loop()
 {
-    timestamp();
-    delay(500);
-    displayLcd();
-
+  displayLcd();
   delay(1000);
   for (gy = 1; gy < 5; gy++)
   {
@@ -165,12 +162,13 @@ void loop()
   delay(1000);
 
   read_temp();
-  delay(1000);  
+  delay(1000);
+
+  relay(1, 0, 1);
+  delay(1000);
   
   for (d = 1; d < 41; d++)
   {
-    relay(1, 0, 1);
-    delay(800);
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
     {
@@ -194,17 +192,18 @@ void loop()
     }
 
     ec.calibration(voltage1, temp); // calibration process by Serail CMD
-    delay(500);
+    delay(1000);
   }
 
   delay(1000);
   relay(1, 1, 1);
   delay(20000);
 
+  relay(0, 1, 1);
+  delay(1000);
+  
 for (b = 1; b < 41; b++)
   {
-    relay(0, 1, 1);
-    delay(1000);
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
     {
@@ -232,14 +231,7 @@ for (b = 1; b < 41; b++)
   delay(1000);
   relay(1, 1, 1);
   delay(1000);
-  
-  timestamp();
-  delay(1000);
-  displayLcd();
-  delay(500);
-//  String sn = "2019030011";
-  //  String dgw = "2020=08-05";
-  //  String tgw = "12:40:00";
+
   String sensor1 = "cahaya";
   String sensor2 = "temperature";
   String sensor3 = "humidity";
@@ -247,8 +239,6 @@ for (b = 1; b < 41; b++)
   String sensor5 = "TDS";
   String sensor6 = "reservoir_temp";
   String sensor7 = "pH";
-
-//  rtc_writetovar();
 
   String postData = (String)"&sn=" + sn.c_str() 
                     + "&dgw=" + tanggal.c_str() 
@@ -263,11 +253,7 @@ for (b = 1; b < 41; b++)
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
   auto httpCode = http.POST(postData);
-//  String payload = http.getString();
-
   Serial.println(postData);
-//  Serial.println(payload);
-
   http.end();
     
   //Handle client rest, taruh di loop paling atas
@@ -464,70 +450,58 @@ void timestamp()
   if (month < 10)
   {
     tanggal = "20" + tahun + "-" + "0" + bulan + "-" + hari;
-    tanggal_ordered = hari + "-" + "0" + bulan + "-" + "20" + tahun;
   }
   else if (month >= 10)
   {
     tanggal = "20" + tahun + "-" + bulan + "-" + hari;
-    tanggal_ordered = hari + "-" + bulan + "-" + "20" + tahun;
   }
 
   if (hour < 10 && minute < 10 && second < 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + "0" + detik;
-    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute < 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour < 10 && minute >= 10 && second < 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + "0" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
-    
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second < 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + "0" + detik;
-    waktu_ordered = jam + ":" + "0" + menit;
   }
   else if (hour >= 10 && minute >= 10 && second < 10)
   {
     waktu = jam + ":" + menit + ":" + "0" + detik;
-    waktu_ordered = jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second >= 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + detik;
-    waktu_ordered = jam + ":" + "0" + menit;
   }
   else
     waktu = jam + ":" + menit + ":" + detik;
-    waktu_ordered = jam + ":" + menit;
 
   Serial.print(tanggal);
   Serial.print("   ");
   Serial.print(waktu);
   Serial.print("   ");
-  Serial.println(waktu_ordered);
 }
 // ------------- End Of Timestamps --------------- //
 
 /********************* Sensor Display to LCD ***************************/
 void displayLcd()
-{
+{ 
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   lcd.setCursor(0, 0);
   lcd.print("   ");
   lcd.print(dayOfMonth, DEC);
