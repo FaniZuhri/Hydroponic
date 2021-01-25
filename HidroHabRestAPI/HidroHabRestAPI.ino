@@ -26,8 +26,8 @@ BH1750 lightMeter(0x23);
 
 // Update these with values suitable for your network.
 
-const char* ssid = "Mie Goyeng";
-const char* password = "digodogsek";
+const char *ssid = "Mie Goyeng";
+const char *password = "digodogsek";
 const char *mqtt_server = "192.168.1.100";
 const char *mqtt_topic = "hidroHAB";
 String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85", tanggal_ordered, waktu_ordered;
@@ -85,8 +85,8 @@ void setup()
   lcd.backlight();
 
   setup_wifi();
-//  client.setServer(mqtt_server, 1883); //IP raspi
-//  client.setCallback(callback);
+  //  client.setServer(mqtt_server, 1883); //IP raspi
+  //  client.setCallback(callback);
 
   pinMode(pHrelaypin, OUTPUT);
   pinMode(TDSrelaypin, OUTPUT);
@@ -119,7 +119,7 @@ void setup()
 
   SHT2x.begin();
 
-    // Init variables and expose them to REST API
+  // Init variables and expose them to REST API
   rest.variable("cahaya", &lux);
   rest.variable("temperature", &temp);
   rest.variable("humidity", &hum);
@@ -135,7 +135,6 @@ void setup()
   // Start the server
   server.begin();
   Serial.println("Server started");
-  
 }
 
 void loop()
@@ -166,7 +165,7 @@ void loop()
 
   relay(1, 0, 1);
   delay(1000);
-  
+
   for (d = 1; d < 41; d++)
   {
     static unsigned long timepoint = millis();
@@ -184,7 +183,7 @@ void loop()
       Serial.println("^C");
 
       ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-      ecValue = (ecValue * 500)/2;
+      ecValue = (ecValue * 500) / 2;
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
@@ -201,8 +200,8 @@ void loop()
 
   relay(0, 1, 1);
   delay(1000);
-  
-for (b = 1; b < 41; b++)
+
+  for (b = 1; b < 41; b++)
   {
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
@@ -240,28 +239,24 @@ for (b = 1; b < 41; b++)
   String sensor6 = "reservoir_temp";
   String sensor7 = "pH";
 
-  String postData = (String)"&sn=" + sn.c_str() 
-                    + "&dgw=" + tanggal.c_str() 
-                    + "&tgw=" + waktu.c_str() 
-                    + "&sensor=" + sensor1 + "x" + sensor2 + "x" + sensor3 + "x" + sensor4 + "x"
-                    + sensor5 + "x" + sensor6 + "x" + sensor7 
-                    + "&nilai=" + lux + "x" + temperature + "x" + hum + "x" + vol + "x" + ecValue + "x" + reservoir_temp 
-                    + "x" + phValue;
+  String postData = (String) "&sn=" + sn.c_str() + "&dgw=" + tanggal.c_str() + "&tgw=" + waktu.c_str() + "&sensor=" + sensor1 + "x" + sensor2 + "x" + sensor3 + "x" + sensor4 + "x" + sensor5 + "x" + sensor6 + "x" + sensor7 + "&nilai=" + lux + "x" + temperature + "x" + hum + "x" + vol + "x" + ecValue + "x" + reservoir_temp + "x" + phValue;
 
   HTTPClient http;
-  http.begin("http://www.smart-gh.com/input.php?sn=2020110001"+postData);
+  http.begin("http://www.smart-gh.com/input.php?sn=2020110001" + postData);
   http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
   auto httpCode = http.POST(postData);
   Serial.println(postData);
   http.end();
-    
+
   //Handle client rest, taruh di loop paling atas
   WiFiClient client = server.available();
-  if (!client) {
+  if (!client)
+  {
     return;
   }
-  while (!client.available()) {
+  while (!client.available())
+  {
     delay(1);
   }
   rest.handle(client);
@@ -369,7 +364,6 @@ void waktu1()
   lcd.print("  ");
 }
 //------------------END of RTC----------------------//
-
 
 /******************** Read SHT value ***********************/
 void readSHT()
@@ -500,7 +494,7 @@ void timestamp()
 
 /********************* Sensor Display to LCD ***************************/
 void displayLcd()
-{ 
+{
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   lcd.setCursor(0, 0);
   lcd.print("   ");
@@ -537,11 +531,11 @@ void displayLcd()
   lcd.print("BL:");
   lcd.print(vol, 0);
   lcd.print("  ");
-  lcd.setCursor(18,2);
+  lcd.setCursor(18, 2);
   lcd.print("cm");
   lcd.setCursor(10, 3);
   lcd.print("WT:");
-  lcd.print(reservoir_temp,1);
+  lcd.print(reservoir_temp, 1);
   lcd.print((char)223);
   lcd.print("C");
   delay(5000);
