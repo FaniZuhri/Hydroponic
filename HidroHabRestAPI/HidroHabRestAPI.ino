@@ -15,6 +15,11 @@
 #include <RTClib.h>
 #include <cString>
 #include <SHT2x.h>
+#include <HTTPClient.h>
+#include <aREST.h>
+#define OUTPUT_BUFFER_SIZE 5000
+#define NUMBER_VARIABLES 20
+#define NUMBER_FUNCTIONS 20
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 BH1750 lightMeter(0x23);
@@ -49,6 +54,7 @@ NewPing sonar = NewPing(trigPin, echoPin, MAX_DISTANCE);
 SHT2x SHT2x;
 
 WiFiClient espClient;
+WiFiServer server(80);
 PubSubClient client(espClient);
 unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (100)
@@ -69,6 +75,9 @@ DallasTemperature sensors(&oneWire);
 #define DS3231_I2C_ADDRESS 0x68
 byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 
+// Create aREST instance
+aREST rest = aREST();
+
 void setup()
 {
   Serial.begin(115200);
@@ -76,8 +85,8 @@ void setup()
   lcd.backlight();
 
   setup_wifi();
-  client.setServer(mqtt_server, 1883); //IP raspi
-  client.setCallback(callback);
+//  client.setServer(mqtt_server, 1883); //IP raspi
+//  client.setCallback(callback);
 
   pinMode(pHrelaypin, OUTPUT);
   pinMode(TDSrelaypin, OUTPUT);
@@ -109,39 +118,33 @@ void setup()
   }
 
   SHT2x.begin();
+
+    // Init variables and expose them to REST API
+  rest.variable("cahaya", &lux);
+  rest.variable("temperature", &temp);
+  rest.variable("humidity", &hum);
+  rest.variable("distance", &vol);
+  rest.variable("TDS", &tdsValue);
+  rest.variable("reservoir_temp", &reservoir_temp);
+  rest.variable("pH", &phValue);
+
+  // Give name & ID to the device (ID should be 6 characters long)
+  rest.set_id("1");
+  rest.set_name("HabBandungan");
+  Serial.println("REST ID = 1 & NAME = HabBandungan");
+  // Start the server
+  server.begin();
+  Serial.println("Server started");
+  
 }
 
 void loop()
 {
-  delay(500);
-  if (!client.connected())
-  { 
-//    setup_wifi();
-//    lcd.clear();
-    reconnect();
-    lcd.clear();
-    delay(1000);
     timestamp();
+    delay(500);
     displayLcd();
-  }
-  client.loop();
 
   delay(1000);
-
-  unsigned long now = millis();
-  if (now - lastMsg > 2000)
-  {
-    lastMsg = now;
-    //    ++value;
-    Serial.println("Send data monitoring to MQTT...");
-    snprintf(msg, MSG_BUFFER_SIZE, "%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.1f,%i,%.1f", sn.c_str(), tanggal.c_str(), waktu.c_str(), temperature, reservoir_temp, phValue, ecValue, hum, lux, vol);
-    Serial.print("Publish message: ");
-    Serial.println(msg);
-    Serial.println(" ");
-    client.publish("hidroHAB", msg);
-    delay(1000);
-  }
-  delay(500);
   for (gy = 1; gy < 5; gy++)
   {
     read_BH();
@@ -149,11 +152,6 @@ void loop()
   }
 
   readSHT();
-  lcd.setCursor(0, 1);
-  lcd.print("T/H:");
-  lcd.print(temperature, 0);
-  lcd.print("/");
-  lcd.print(hum, 0);
   delay(1000);
 
   for (e = 1; e < 9; e++)
@@ -161,21 +159,15 @@ void loop()
     read_JSN();
     delay(250);
   }
-  lcd.setCursor(10, 2);
-  lcd.print("BL:");
-  lcd.print(vol, 0);
   delay(1000);
 
   sampling();
   delay(1000);
 
   read_temp();
-  lcd.setCursor(10, 3);
-  lcd.print("WT:");
-  lcd.print(reservoir_temp);
-  delay(1000);
+  delay(1000);  
   
-  for (d = 1; d < 51; d++)
+  for (d = 1; d < 41; d++)
   {
     relay(1, 0, 1);
     delay(800);
@@ -198,6 +190,7 @@ void loop()
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
+      displayLcd();
     }
 
     ec.calibration(voltage1, temp); // calibration process by Serail CMD
@@ -206,11 +199,7 @@ void loop()
 
   delay(1000);
   relay(1, 1, 1);
-  delay(1000);
-  lcd.setCursor(0, 3);
-  lcd.print("TDS:");
-  lcd.print(ecValue, 0);
-  delay(10000);
+  delay(20000);
 
 for (b = 1; b < 41; b++)
   {
@@ -231,9 +220,10 @@ for (b = 1; b < 41; b++)
       Serial.println(voltage, 0);
 
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
-      phValue = phValue + 0.5;
+      phValue = phValue + 0.8;
       Serial.print("pH:");
       Serial.println(phValue, 4);
+      displayLcd();
     }
     ph.calibration(voltage, temp); // calibration process by Serail CMD
     delay(1000);
@@ -242,15 +232,53 @@ for (b = 1; b < 41; b++)
   delay(1000);
   relay(1, 1, 1);
   delay(1000);
-  lcd.setCursor(0, 2);
-  lcd.print("PH :");
-  lcd.print(phValue, 1);
-  delay(1000);
   
   timestamp();
   delay(1000);
   displayLcd();
-  delay(3000);
+  delay(500);
+//  String sn = "2019030011";
+  //  String dgw = "2020=08-05";
+  //  String tgw = "12:40:00";
+  String sensor1 = "cahaya";
+  String sensor2 = "temperature";
+  String sensor3 = "humidity";
+  String sensor4 = "distance";
+  String sensor5 = "TDS";
+  String sensor6 = "reservoir_temp";
+  String sensor7 = "pH";
+
+//  rtc_writetovar();
+
+  String postData = (String)"&sn=" + sn.c_str() 
+                    + "&dgw=" + tanggal.c_str() 
+                    + "&tgw=" + waktu.c_str() 
+                    + "&sensor=" + sensor1 + "x" + sensor2 + "x" + sensor3 + "x" + sensor4 + "x"
+                    + sensor5 + "x" + sensor6 + "x" + sensor7 
+                    + "&nilai=" + lux + "x" + temperature + "x" + hum + "x" + vol + "x" + ecValue + "x" + reservoir_temp 
+                    + "x" + phValue;
+
+  HTTPClient http;
+  http.begin("http://www.smart-gh.com/input.php?sn=2020110001"+postData);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  auto httpCode = http.POST(postData);
+//  String payload = http.getString();
+
+  Serial.println(postData);
+//  Serial.println(payload);
+
+  http.end();
+    
+  //Handle client rest, taruh di loop paling atas
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+  while (!client.available()) {
+    delay(1);
+  }
+  rest.handle(client);
 }
 
 /***************** sampling state ****************************************/
@@ -368,6 +396,7 @@ void readSHT()
   Serial.print(hum);
   Serial.print("\tTemperature(C): ");
   Serial.println(temperature);
+  displayLcd();
 }
 /********************* End SHT Rading **************************/
 
@@ -388,6 +417,7 @@ void read_temp()
   reservoir_temp = sensors.getTempCByIndex(0);
   Serial.print("reservoir temperature: ");
   Serial.println(reservoir_temp);
+  displayLcd();
   delay(1000);
 }
 // ----- End Of Measurement ------ //
@@ -399,9 +429,7 @@ void read_BH()
   Serial.print("Light: ");
   Serial.print(lux);
   Serial.println(" lx");
-  lcd.setCursor(10, 1);
-  lcd.print("L :");
-  lcd.print(lux);
+  displayLcd();
   delay(1000);
 }
 /************************** End BH Reading ********************************/
@@ -416,6 +444,7 @@ void read_JSN()
   vol = 120 - vol;
   Serial.print(vol);
   Serial.println(" cm");
+  displayLcd();
   delay(500);
 }
 /***************************** End JSN Reading ******************************/
@@ -500,31 +529,47 @@ void timestamp()
 void displayLcd()
 {
   lcd.setCursor(0, 0);
+  lcd.print("   ");
+  lcd.print(dayOfMonth, DEC);
+  lcd.print("-");
+  lcd.print(month, DEC);
+  lcd.print("-");
+  lcd.print("20");
+  lcd.print(year, DEC);
+  lcd.print(" ");
+  lcd.print(hour, DEC);
+  lcd.print(":");
+  if (minute < 10)
+    lcd.print("0");
+  lcd.print(minute, DEC);
   lcd.print("  ");
-  lcd.print(tanggal_ordered);
-  lcd.print(" ");
-  lcd.print(waktu_ordered);
-  lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
   lcd.print(temperature, 0);
   lcd.print("/");
   lcd.print(hum, 0);
   lcd.setCursor(0, 2);
-  lcd.print("PH :");
+  lcd.print("pH :");
   lcd.print(phValue, 1);
+  lcd.print(" ");
   lcd.setCursor(0, 3);
   lcd.print("TDS:");
   lcd.print(ecValue, 0);
+  lcd.print(" ");
   lcd.setCursor(10, 1);
   lcd.print("L :");
   lcd.print(lux);
   lcd.setCursor(10, 2);
   lcd.print("BL:");
   lcd.print(vol, 0);
+  lcd.print("  ");
+  lcd.setCursor(18,2);
+  lcd.print("cm");
   lcd.setCursor(10, 3);
   lcd.print("WT:");
-  lcd.print(reservoir_temp);
+  lcd.print(reservoir_temp,1);
+  lcd.print((char)223);
+  lcd.print("C");
   delay(5000);
   //  lcd.clear();
 }
@@ -565,64 +610,7 @@ void setup_wifi()
   lcd.print("Connected!");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  delay(3000);
+  lcd.clear();
 }
 /************************** End Setup Wifi **********************/
-
-/****************** Reconnect and Callback MQTT ******************/
-void callback(char *topic, byte *payload, unsigned int length)
-{
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++)
-  {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1')
-  {
-  }
-  else
-  {
-  }
-}
-
-void reconnect()
-{
-  // Loop until we're reconnected
-  while (!client.connected())
-  {
-    waktu1();
-    Serial.print("Attempting MQTT connection...");
-    lcd.setCursor(0, 3);
-    lcd.print("Connecting to MQTT..");
-    // Create a random client ID
-    String clientId = "ESP8266Client-";
-    clientId += String(random(0xffff), HEX);
-    // Attempt to connect
-    if (client.connect(clientId.c_str()))
-    {
-      Serial.println("connected");
-      lcd.clear();
-      waktu1();
-      lcd.setCursor(0, 3);
-      lcd.print("   MQTT Connected   ");
-      delay(2000);
-    }
-    else
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      lcd.clear();
-      waktu1();
-      lcd.setCursor(0, 3);
-      lcd.print("Failed");
-      lcd.print(client.state());
-      delay(5000);
-    }
-  }
-}
-/************************** End Conf **************************/
