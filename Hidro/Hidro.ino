@@ -25,7 +25,7 @@ const char* ssid = "Mie Goyeng";
 const char* password = "digodogsek";
 const char *mqtt_server = "192.168.1.100";
 const char *mqtt_topic = "hidroHAB";
-String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85", tanggal_ordered, waktu_ordered;
+String sn = "2020110001", tanggal = "20165-165-165", waktu = "45:165:85";
 char c;
 
 /************************* EC  and PH Initialization **************************/
@@ -54,9 +54,8 @@ unsigned long lastMsg = 0;
 #define MSG_BUFFER_SIZE (100)
 char msg[MSG_BUFFER_SIZE];
 
-float phValue = 0, reservoir_temp, tdsValue, hum, vol, ecValue, voltage, voltage1, temperature, temp = 25;
-int i = 1, t, TDS_coef, dis_sum, firstLoop = 1, n, gy, a = 1, b = 1, d = 1, e = 1, lux;
-int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, h;
+float phValue = 0, phValue2 = 0, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, voltage, voltage1, temperature, temp = 25;
+int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, i = 1, lux;
 
 //Temperature chip i/o
 #define ONE_WIRE_BUS 15
@@ -142,43 +141,33 @@ void loop()
     delay(1000);
   }
   delay(500);
-  for (gy = 1; gy < 5; gy++)
+  for (i = 1; i < 5; i++)
   {
     read_BH();
     delay(250);
   }
 
   readSHT();
-  lcd.setCursor(0, 1);
-  lcd.print("T/H:");
-  lcd.print(temperature, 0);
-  lcd.print("/");
-  lcd.print(hum, 0);
   delay(1000);
-
-  for (e = 1; e < 9; e++)
+  i = 1;
+  for (i = 1; i < 9; i++)
   {
     read_JSN();
     delay(250);
   }
-  lcd.setCursor(10, 2);
-  lcd.print("BL:");
-  lcd.print(vol, 0);
   delay(1000);
 
   sampling();
   delay(1000);
 
   read_temp();
-  lcd.setCursor(10, 3);
-  lcd.print("WT:");
-  lcd.print(reservoir_temp);
   delay(1000);
-  
-  for (d = 1; d < 51; d++)
+
+  relay(1, 0, 1);
+  delay(1000);
+  i = 1;
+  for (i = 1; i < 41; i++)
   {
-    relay(1, 0, 1);
-    delay(800);
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
     {
@@ -194,28 +183,26 @@ void loop()
       Serial.println("^C");
 
       ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
-      ecValue = (ecValue * 500)/2;
+      ecValue = (ecValue * 500) / 2;
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
+      displayLcd();
     }
 
     ec.calibration(voltage1, temp); // calibration process by Serail CMD
-    delay(500);
+    delay(1000);
   }
 
   delay(1000);
   relay(1, 1, 1);
-  delay(1000);
-  lcd.setCursor(0, 3);
-  lcd.print("TDS:");
-  lcd.print(ecValue, 0);
-  delay(10000);
+  delay(20000);
 
-for (b = 1; b < 41; b++)
+  relay(0, 1, 1);
+  delay(1000);
+  i = 1;
+  for (i = 1; i < 41; i++)
   {
-    relay(0, 1, 1);
-    delay(1000);
     static unsigned long timepoint = millis();
     if (millis() - timepoint > 1000U) //time interval: 1s
     {
@@ -231,9 +218,18 @@ for (b = 1; b < 41; b++)
       Serial.println(voltage, 0);
 
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
-      phValue = phValue + 0.5;
+      phValue = phValue + 0.8;
+      if (phValue >= 8)
+      {
+        phValue = phValue2;
+      }
+      else
+      {
+        phValue2 = phValue;
+      }
       Serial.print("pH:");
       Serial.println(phValue, 4);
+      displayLcd();
     }
     ph.calibration(voltage, temp); // calibration process by Serail CMD
     delay(1000);
@@ -242,15 +238,6 @@ for (b = 1; b < 41; b++)
   delay(1000);
   relay(1, 1, 1);
   delay(1000);
-  lcd.setCursor(0, 2);
-  lcd.print("PH :");
-  lcd.print(phValue, 1);
-  delay(1000);
-  
-  timestamp();
-  delay(1000);
-  displayLcd();
-  delay(3000);
 }
 
 /***************** sampling state ****************************************/
@@ -368,6 +355,7 @@ void readSHT()
   Serial.print(hum);
   Serial.print("\tTemperature(C): ");
   Serial.println(temperature);
+  displayLcd();
 }
 /********************* End SHT Rading **************************/
 
@@ -388,6 +376,7 @@ void read_temp()
   reservoir_temp = sensors.getTempCByIndex(0);
   Serial.print("reservoir temperature: ");
   Serial.println(reservoir_temp);
+  displayLcd();
   delay(1000);
 }
 // ----- End Of Measurement ------ //
@@ -399,9 +388,7 @@ void read_BH()
   Serial.print("Light: ");
   Serial.print(lux);
   Serial.println(" lx");
-  lcd.setCursor(10, 1);
-  lcd.print("L :");
-  lcd.print(lux);
+  displayLcd();
   delay(1000);
 }
 /************************** End BH Reading ********************************/
@@ -414,8 +401,17 @@ void read_JSN()
   // Send ping, get distance in cm and print result (0 = outside set distance range):
   vol = sonar.ping_cm();
   vol = 120 - vol;
+  if (vol >= 120)
+  {
+    vol = vol2;
+  }
+  else
+  {
+    vol2 = vol;
+  }
   Serial.print(vol);
   Serial.println(" cm");
+  displayLcd();
   delay(500);
 }
 /***************************** End JSN Reading ******************************/
@@ -435,97 +431,102 @@ void timestamp()
   if (month < 10)
   {
     tanggal = "20" + tahun + "-" + "0" + bulan + "-" + hari;
-    tanggal_ordered = hari + "-" + "0" + bulan + "-" + "20" + tahun;
   }
   else if (month >= 10)
   {
     tanggal = "20" + tahun + "-" + bulan + "-" + hari;
-    tanggal_ordered = hari + "-" + bulan + "-" + "20" + tahun;
   }
 
   if (hour < 10 && minute < 10 && second < 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + "0" + detik;
-    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute < 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + "0" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + "0" + menit;
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour < 10 && minute >= 10 && second < 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + "0" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
     
   }
   else if (hour < 10 && minute >= 10 && second >= 10)
   {
     waktu = "0" + jam + ":" + menit + ":" + detik;
-    waktu_ordered = "0" + jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second < 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + "0" + detik;
-    waktu_ordered = jam + ":" + "0" + menit;
   }
   else if (hour >= 10 && minute >= 10 && second < 10)
   {
     waktu = jam + ":" + menit + ":" + "0" + detik;
-    waktu_ordered = jam + ":" + menit;
   }
   else if (hour >= 10 && minute < 10 && second >= 10)
   {
     waktu = jam + ":" + "0" + menit + ":" + detik;
-    waktu_ordered = jam + ":" + "0" + menit;
   }
   else
     waktu = jam + ":" + menit + ":" + detik;
-    waktu_ordered = jam + ":" + menit;
 
   Serial.print(tanggal);
   Serial.print("   ");
   Serial.print(waktu);
   Serial.print("   ");
-  Serial.println(waktu_ordered);
 }
 // ------------- End Of Timestamps --------------- //
 
 /********************* Sensor Display to LCD ***************************/
 void displayLcd()
 {
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   lcd.setCursor(0, 0);
+  lcd.print("   ");
+  lcd.print(dayOfMonth, DEC);
+  lcd.print("-");
+  lcd.print(month, DEC);
+  lcd.print("-");
+  lcd.print("20");
+  lcd.print(year, DEC);
+  lcd.print(" ");
+  lcd.print(hour, DEC);
+  lcd.print(":");
+  if (minute < 10)
+    lcd.print("0");
+  lcd.print(minute, DEC);
   lcd.print("  ");
-  lcd.print(tanggal_ordered);
-  lcd.print(" ");
-  lcd.print(waktu_ordered);
-  lcd.print(" ");
   lcd.setCursor(0, 1);
   lcd.print("T/H:");
   lcd.print(temperature, 0);
   lcd.print("/");
   lcd.print(hum, 0);
   lcd.setCursor(0, 2);
-  lcd.print("PH :");
+  lcd.print("pH :");
   lcd.print(phValue, 1);
+  lcd.print(" ");
   lcd.setCursor(0, 3);
   lcd.print("TDS:");
   lcd.print(ecValue, 0);
+  lcd.print(" ");
   lcd.setCursor(10, 1);
   lcd.print("L :");
   lcd.print(lux);
   lcd.setCursor(10, 2);
   lcd.print("BL:");
   lcd.print(vol, 0);
+  lcd.print("  ");
+  lcd.setCursor(18, 2);
+  lcd.print("cm");
   lcd.setCursor(10, 3);
   lcd.print("WT:");
-  lcd.print(reservoir_temp);
-  delay(5000);
+  lcd.print(reservoir_temp, 1);
+  lcd.print((char)223);
+  lcd.print("C");
+  // delay(5000);
   //  lcd.clear();
 }
 /************************ End of Display ***************************/
