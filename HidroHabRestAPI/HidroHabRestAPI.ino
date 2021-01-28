@@ -51,7 +51,7 @@ SHT2x SHT2x;
 WiFiClient espClient;
 WiFiServer server(80);
 
-float phValue = 0, phValue2 = 0, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, voltage, voltage1, temperature, temp = 25;
+float phValue = 0, phValue2 = 0, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, ecValue2, voltage, voltage1, temperature, temp = 25;
 int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, i = 1, lux;
 
 //Temperature chip i/o
@@ -89,6 +89,8 @@ void setup()
   ec.begin();
   //by default lib store calibration k since 10 change it by set ec.begin(30); to start from 30
   ads.setGain(GAIN_ONE);
+
+  // coba kasi address pada i2c ads.begin() dicari pake i2c scanner
   ads.begin();
 
   sensors.begin(); //DS18B20 start
@@ -105,6 +107,7 @@ void setup()
     Serial.println(F("Error initialising BH1750"));
   }
 
+  // coba kasi address pada i2c SHT2x.begin() dicari pake i2c scanner
   SHT2x.begin();
 
   // Init variables and expose them to REST API
@@ -171,8 +174,17 @@ void loop()
       Serial.print(temp, 1);
       Serial.println("^C");
 
+      // coba ganti temp dengan reservoir_temp
       ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
       ecValue = (ecValue * 500) / 2;
+      if (ecValue >= 3000 || ecValue <= 500)
+      {
+        ecValue = ecValue2;
+      }
+      else
+      {
+        ecValue2 = ecValue;
+      }
       Serial.print("EC:");
       Serial.print(ecValue, 4);
       Serial.println("us/cm");
@@ -206,9 +218,10 @@ void loop()
       Serial.print("voltage:");
       Serial.println(voltage, 0);
 
+      // coba ganti temp dengan reservoir_temp
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
       phValue = phValue + 0.8;
-      if (phValue >= 8)
+      if (phValue >= 8 || phValue <=4)
       {
         phValue = phValue2;
       }
@@ -367,6 +380,10 @@ void readSHT()
 {
 
   hum = SHT2x.GetHumidity();
+  if (hum >= 90)
+  {
+      hum = 90;
+  }
   temperature = SHT2x.GetTemperature();
 
   Serial.print("Humidity(%RH): ");
@@ -419,7 +436,7 @@ void read_JSN()
   // Send ping, get distance in cm and print result (0 = outside set distance range):
   vol = sonar.ping_cm();
   vol = 120 - vol;
-  if (vol >= 120)
+  if (vol >= 120 || vol <= 40)
   {
     vol = vol2;
   }
