@@ -51,7 +51,7 @@ SHT2x SHT2x;
 WiFiClient espClient;
 WiFiServer server(80);
 
-float phValue = 0, phValue2 = 0, phValueAvg, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, ecValue2, voltage, voltage1, temperature, temp = 25;
+float phValue = 0, lastpH = 0, phValueAvg, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, ecValueAvg, lastEc, voltage, voltage1, temperature, temp = 25;
 int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, i = 1, lux;
 
 //Temperature chip i/o
@@ -91,7 +91,7 @@ void setup()
   ads.setGain(GAIN_ONE);
 
   // coba kasi address pada i2c ads.begin() dicari pake i2c scanner
-  ads.begin(0x48);
+  ads.begin();
 
   sensors.begin(); //DS18B20 start
 
@@ -108,7 +108,7 @@ void setup()
   }
 
   // coba kasi address pada i2c SHT2x.begin() dicari pake i2c scanner
-  SHT2x.begin(0x40);
+  SHT2x.begin();
 
   // Init variables and expose them to REST API
   rest.variable("cahaya", &lux);
@@ -179,11 +179,21 @@ void loop()
       ecValue = (ecValue * 500) / 2;
       if (ecValue >= 3000 || ecValue <= 500)
       {
-        ecValue = ecValue2;
+        ecValue = lastEc;
       }
       else
       {
-        ecValue2 = ecValue;
+        lastEc = ecValue;
+      }
+      //get average pH Value from 25th to 40th measurement
+      if (i >= 25)
+      {
+        ecValueAvg += ecValue;
+        ecValue = ecValueAvg / (i - 24);
+        if (ecValue <= 3000 && ecValue >= 500)
+        {
+          lastEc = ecValue;
+        }
       }
       Serial.print("EC:");
       Serial.print(ecValue, 4);
@@ -224,20 +234,21 @@ void loop()
                                           //      phValue = phValue + 0.8;
       if (phValue >= 8 || phValue <= 4)
       {
-        phValue = phValue2;
+        phValue = lastpH;
       }
       else
       {
-        phValue2 = phValue;
+        lastpH = phValue;
       }
       //get average pH Value from 25th to 40th measurement
       if (i >= 25)
       {
         phValueAvg += phValue;
-      }
-      else
-      {
         phValue = phValueAvg / (i - 24);
+        if (phValue <= 8 && phValue >= 4)
+        {
+          lastpH = phValue;
+        }
       }
       Serial.print("pH:");
       Serial.println(phValue, 4);
@@ -251,6 +262,10 @@ void loop()
   relay(1, 1, 1);
   delay(1000);
 
+  phValueAvg = 0;
+  ecValueAvg = 0;
+  timestamp();
+  delay(100);
   String sensor1 = "cahaya";
   String sensor2 = "temperature";
   String sensor3 = "humidity";
