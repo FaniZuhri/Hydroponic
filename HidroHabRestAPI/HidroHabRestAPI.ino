@@ -51,7 +51,7 @@ SHT2x SHT2x;
 WiFiClient espClient;
 WiFiServer server(80);
 
-float phValue = 0, phValue2 = 0, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, ecValue2, voltage, voltage1, temperature, temp = 25;
+float phValue = 0, phValue2 = 0, phValueAvg, reservoir_temp, tdsValue, hum, vol, vol2 = 0, ecValue, ecValue2, voltage, voltage1, temperature, temp = 25;
 int pHrelaypin = 33, TDSrelaypin = 25, samplingrelay = 26, pomparelay = 33, i = 1, lux;
 
 //Temperature chip i/o
@@ -91,7 +91,7 @@ void setup()
   ads.setGain(GAIN_ONE);
 
   // coba kasi address pada i2c ads.begin() dicari pake i2c scanner
-  ads.begin();
+  ads.begin(0x48);
 
   sensors.begin(); //DS18B20 start
 
@@ -108,7 +108,7 @@ void setup()
   }
 
   // coba kasi address pada i2c SHT2x.begin() dicari pake i2c scanner
-  SHT2x.begin();
+  SHT2x.begin(0x40);
 
   // Init variables and expose them to REST API
   rest.variable("cahaya", &lux);
@@ -175,7 +175,7 @@ void loop()
       Serial.println("^C");
 
       // coba ganti temp dengan reservoir_temp
-      ecValue = ec.readEC(voltage1, temp); // convert voltage to EC with temperature compensation
+      ecValue = ec.readEC(voltage1, reservoir_temp); // convert voltage to EC with temperature compensation
       ecValue = (ecValue * 500) / 2;
       if (ecValue >= 3000 || ecValue <= 500)
       {
@@ -199,6 +199,7 @@ void loop()
   relay(1, 1, 1);
   delay(20000);
 
+  //PH
   relay(0, 1, 1);
   delay(1000);
   i = 1;
@@ -220,14 +221,23 @@ void loop()
 
       // coba ganti temp dengan reservoir_temp
       phValue = ph.readPH(voltage, temp); // convert voltage to pH with temperature compensation
-      phValue = phValue + 0.8;
-      if (phValue >= 8 || phValue <=4)
+                                          //      phValue = phValue + 0.8;
+      if (phValue >= 8 || phValue <= 4)
       {
         phValue = phValue2;
       }
       else
       {
         phValue2 = phValue;
+      }
+      //get average pH Value from 25th to 40th measurement
+      if (i >= 25)
+      {
+        phValueAvg += phValue;
+      }
+      else
+      {
+        phValue = phValueAvg / (i - 24);
       }
       Serial.print("pH:");
       Serial.println(phValue, 4);
@@ -382,7 +392,7 @@ void readSHT()
   hum = SHT2x.GetHumidity();
   if (hum >= 90)
   {
-      hum = 90;
+    hum = 90;
   }
   temperature = SHT2x.GetTemperature();
 
